@@ -7,13 +7,9 @@
 
 ## EdgeRouter_ER-X——v1.x 固件版本为1.x的
 直接下载后cd到文件夹中  
-
 命令语句  
-
 sudo ./er-en2zh make  
-
 切换为中文  
-
 sudo ./er-en2zh zh
 切换为英语
 sudo ./er-en2zh en

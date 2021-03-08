@@ -1,13 +1,19 @@
 # EdgeRouter_ER-X汉化
-由于固件版本不同，需要使用不同的脚本进行优化
-已上传为非压缩版 可以不用解压
-若需要解压的可以使用 tar zxvf 进行解压
+由于固件版本不同，需要使用不同的脚本进行优化  
+
+已上传为非压缩版 可以不用解压  
+
+若需要解压的可以使用 tar zxvf 进行解压  
 
 ## EdgeRouter_ER-X——v1.x 固件版本为1.x的
-直接下载后cd到文件夹中
-命令语句
-sudo ./er-en2zh make
-切换为中文
+直接下载后cd到文件夹中  
+
+命令语句  
+
+sudo ./er-en2zh make  
+
+切换为中文  
+
 sudo ./er-en2zh zh
 切换为英语
 sudo ./er-en2zh en

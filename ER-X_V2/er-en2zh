@@ -1,0 +1,93 @@
+#!/bin/bash
+#
+# er-en2zh v0.99
+#
+# by stvictor@qq.com, May 2019
+#
+
+TPLPATH=/var/www/python/edgeos_gui/
+TPLNAME=templates
+
+[[ $EUID -ne 0 ]] && echo "Error: you should sudo as root to run this script." && exit 1
+case "$1" in
+  zh)
+    [ ! -d "${TPLPATH}${TPLNAME}-zh" ] && echo "Error: Chinese directory not found, run \"$0 make\" first." && exit 1
+    [ ! -L "${TPLPATH}${TPLNAME}" ] && echo "Error: Current templates is not symbol link, run \"$0 make\" first." && exit 1
+    rm -f "${TPLPATH}${TPLNAME}"
+    ln -sf "${TPLPATH}${TPLNAME}-zh" "${TPLPATH}${TPLNAME}"
+    echo -n "WebUI change to Chinese. HTTP daemon restarting... "
+    /sbin/start-stop-daemon --stop --quiet --pidfile /var/run/lighttpd.pid && /usr/sbin/lighttpd -f /etc/lighttpd/lighttpd.conf && echo "ok"
+    ;;
+  en)
+    [ ! -d "${TPLPATH}${TPLNAME}-en" ] && echo "Error: Original directory not found, maybe you should restore system." && exit 1
+    [ ! -L "${TPLPATH}${TPLNAME}" ] && echo "Error: Current templates is not symbol link, run \"$0 make\" first." && exit 1
+    rm -f "${TPLPATH}${TPLNAME}"
+    ln -sf "${TPLPATH}${TPLNAME}-en" "${TPLPATH}${TPLNAME}"
+    echo "WebUI change to original. HTTP daemon restarting... "
+    /sbin/start-stop-daemon --stop --quiet --pidfile /var/run/lighttpd.pid && /usr/sbin/lighttpd -f /etc/lighttpd/lighttpd.conf && echo "ok"
+    ;;
+  make)
+    if [ ! -d "${TPLPATH}${TPLNAME}-en" ]
+    then
+      [ ! -d "${TPLPATH}${TPLNAME}" ] && echo "Error: Original directory not found, maybe you should restore system." && exit 1
+      echo -n "Backup original templates... "
+      mv "${TPLPATH}${TPLNAME}" "${TPLPATH}${TPLNAME}-en"
+      [ $? -ne 0 ] && echo "error" && exit 1
+      ln -sf "${TPLPATH}${TPLNAME}-en" "${TPLPATH}${TPLNAME}"
+      [ $? -ne 0 ] && echo "error" && exit 1
+      echo "ok"
+    fi
+    if [ -d "${TPLPATH}${TPLNAME}-zh" ]
+    then
+      echo -n "Old Chinese templates exist, deleting... "
+      rm -Rf "${TPLPATH}${TPLNAME}-zh"
+      [ $? -ne 0 ] && echo "error" && exit 1
+      echo "ok"
+    fi
+    echo -n "Copy original templates... "
+    cp -R "${TPLPATH}${TPLNAME}-en" "${TPLPATH}${TPLNAME}-zh"
+    [ $? -ne 0 ] && echo "error" && exit 1
+    echo "ok"
+    echo -n "Reading dictionary... "
+    PRGDIR=$(cd `dirname $0` && pwd -P)
+    [ ! -f "${PRGDIR}/er-dict.txt" ] && echo "not found!" && exit 1
+    DICTLIST=`cat "${PRGDIR}/er-dict.txt"`
+    [ $? -ne 0 ] && echo "error" && exit 1
+    echo "ok"
+    echo -n "Translating... "
+    DICTLC=`echo "$DICTLIST"|wc -l`
+    i=1
+    while [ $i -le $DICTLC ]
+    do
+      DICTLINE=`echo "$DICTLIST"|awk 'NR==myln {print $0}' myln="$i"`
+      echo -en "\rTranslating... $i/$DICTLC  "
+      if [ -n "$DICTLINE" ] && [ "${DICTLINE:0:1}" != "#" ]
+      then
+        STRSRC=`echo "$DICTLINE" | awk -F= '{print $1}'`
+        STRDST=`echo "$DICTLINE" | awk -F= '{print $2}'`
+        if [ -n "$STRDST" ]
+        then
+          SRCTYPE=${STRSRC:0:1}
+          if [ "$SRCTYPE" == "@" ]
+          then
+            STRSRC=${STRSRC:1}
+            find "${TPLPATH}${TPLNAME}-zh" -type f -name "*.html" | xargs sed -i "s#data-infotip=\"$STRSRC\"#data-infotip=\"$STRDST\"#g"
+          elif [ "$SRCTYPE" == "$" ]
+          then
+            STRSRC=${STRSRC:1}
+            find "${TPLPATH}${TPLNAME}-zh" -type f -name "*.html" | xargs sed -i "s#$STRSRC#$STRDST#g"
+          else
+            find "${TPLPATH}${TPLNAME}-zh" -type f -name "*.html" | xargs sed -i "s#>\s*$STRSRC\s*</#>$STRDST</#g"
+          fi
+        fi
+      fi
+      ((i++))
+    done
+    echo -e "\rTranslating... ok                         "
+    echo "Run \"sudo $0 zh\" will change WebUI to Chinese, \"sudo $0 en\" will restore to original version."
+    ;;
+  *)
+    echo "Usage: $0 {make|zh|en}"
+    exit 1
+esac
+exit 0
